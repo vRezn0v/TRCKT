@@ -23,7 +23,13 @@ router.put('/:id', requireAuth, async(req, res) => {
     res.send(list)
 })
 
-router.post('/create', requireAuth, async(req, res) => {
+router.put('/:id/:tid', requireAuth, async(req, res) => {
+    const { completed, title } = req.body
+    const task = await Task.findByIdAndUpdate(req.params.tid, { $set: { completed, title } })
+    res.send(task)
+})
+
+router.post('/', requireAuth, async(req, res) => {
     const { title, description } = req.body
 
     const newList = new TaskList({
@@ -36,7 +42,7 @@ router.post('/create', requireAuth, async(req, res) => {
     return res.send(list)
 })
 
-router.post('/:id/create', requireAuth, async(req, res) => {
+router.post('/:id', requireAuth, async(req, res) => {
     const { title } = req.body
 
     const task = new Task({

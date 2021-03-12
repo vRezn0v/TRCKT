@@ -5,6 +5,11 @@ const config = require('../config')
 
 const EXPIRE = 3600 * 2
 
+const validateEmail = (email) => {
+    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+    return re.test(String(email).toLowerCase())
+}
+
 exports.generateToken = user => {
     const timestamp = Math.floor(new Date().getTime() / 1000)
     return jwt.encode({ iss: 'TRCKT', sub: user.id, iat: timestamp, exp: timestamp + EXPIRE },
@@ -15,7 +20,7 @@ exports.generateToken = user => {
 exports.signup = (req, res, next) => {
     const { email, password, displayName } = req.body
 
-    if (!email || !password || password.length < 6 || !displayName || displayName.length < 3)
+    if (!email || !validateEmail(email) || !password || password.length < 6 || !displayName || displayName.length < 3)
         return res.status(422).send({
             error: "Provide Valid Credentials."
         })

@@ -29,12 +29,12 @@ userSchema.pre('save', function(next) {
 
             user.password = hash;
             next();
-        });
-    });
-});
+        })
+    })
+})
 
-userSchema.methods.comparePassword = (password, callback) => {
-    bcrypt.compare(password, this.password, (err, isMatch) => {
+userSchema.methods.comparePassword = function(candidate, callback) {
+    bcrypt.compare(candidate, this.password, (err, isMatch) => {
         if (err) return callback(err)
         callback(null, isMatch)
     })

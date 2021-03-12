@@ -32,8 +32,10 @@ app.use(cookieParser())
 // use routes
 app.use('/auth', authRouter)
 app.use('/api/tasks', tasksRouter)
-app.use('/api/users', userRouter)
+app.use('/api/user', userRouter)
 
 
 
 app.listen(port, () => console.log(`[+] TRCKT server running at PORT: ${port}`))
+
+module.exports = app
