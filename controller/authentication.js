@@ -3,12 +3,16 @@ const jwt = require('jwt-simple')
 const User = require('../models/User')
 const config = require('../config')
 
-const EXPIRE = 3600 * 2
+const client = require('redis').createClient()
+
+const EXPIRE = 3600
 
 const validateEmail = (email) => {
     const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
     return re.test(String(email).toLowerCase())
 }
+
+
 
 exports.generateToken = user => {
     const timestamp = Math.floor(new Date().getTime() / 1000)
@@ -55,5 +59,31 @@ exports.login = (req, res) => {
             email,
             displayName
         }
+    })
+}
+
+exports.logout = (req, res) => {
+    const token = req.headers.authorization.replace('bearer ', '')
+    const user = req.user.id
+
+    client.get(user, (err, data) => {
+        if (err) res.send({ err })
+        if (data !== null) {
+            const parsedData = JSON.parse(data)
+            parsedData[user].push(token)
+            client.setex(user, 3600, JSON.stringify(parsedData))
+            return res.send({
+                status: 'success',
+                message: "Logout Success"
+            })
+        }
+        const blacklistData = {
+            [user]: [token]
+        }
+        client.setex(user, 3600, JSON.stringify(blacklistData))
+        return res.send({
+            status: 'success',
+            message: "Logout Success"
+        })
     })
 }

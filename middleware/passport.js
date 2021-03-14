@@ -1,11 +1,16 @@
 const passport = require('passport')
 const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt')
 const LocalStrategy = require('passport-local')
+const jwt = require('jwt-simple')
 
 const User = require('../models/User')
 const config = require('../config')
+const { authSecret } = require('../config')
+
+const client = require('redis').createClient()
 
 const localOptions = { usernameField: "email" }
+
 
 const localLogin = new LocalStrategy(localOptions, (email, password, done) => {
     User.findOne({ email: email }, (err, user) => {
@@ -25,9 +30,19 @@ const jwtOptions = {
 }
 
 const jwtLogin = new JwtStrategy(jwtOptions, (payload, done) => {
+    const token = jwt.encode(payload, authSecret)
     User.findById(payload.sub, (err, user) => {
         if (err) return done(err, false)
-        if (user) return done(null, user)
+        if (user) {
+            client.get(user.id, (err, data) => {
+                if (err) return done(err, false)
+                if (data != null) {
+                    const parsedData = JSON.parse(data)
+                    if (parsedData[user.id].includes(token)) return done("Invalid Token", false)
+                }
+            })
+            return done(null, user)
+        }
         return done(null, false)
     })
 })

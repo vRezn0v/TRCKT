@@ -56,13 +56,13 @@ router.post('/:id', requireAuth, async(req, res) => {
 
 router.delete('/:id', requireAuth, async(req, res) => {
     await Task.deleteMany({ listId: req.params.id })
-    const result = await TaskList.findByIdAndDelete(req.params.id)
-    return res.send(result)
+    await TaskList.findByIdAndDelete(req.params.id)
+    return res.send("Deletion Success")
 })
 
 router.delete('/:id/:tid', requireAuth, async(req, res) => {
-    const result = await Task.findByIdAndDelete(req.params.id)
-    return res.send(result)
+    await Task.findByIdAndDelete(req.params.id)``
+    return res.send("Deletion Success")
 })
 
 module.exports = router
