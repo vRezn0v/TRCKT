@@ -6,22 +6,24 @@ const jwt = require('jwt-simple')
 const User = require('../models/User')
 const config = require('../config')
 const { authSecret } = require('../config')
+const { replaceOne } = require('../models/User')
 
-const client = require('redis').createClient()
+const redisClient = require('redis').createClient()
 
 const localOptions = { usernameField: "email" }
 
 
-const localLogin = new LocalStrategy(localOptions, (email, password, done) => {
-    User.findOne({ email: email }, (err, user) => {
-        if (err) return done(err, false)
-        if (!user) return done(null, false)
-        user.comparePassword(password, (err, isMatch) => {
-            if (err) return done(err)
-            if (isMatch) return done(null, user)
-            return done(null, false)
-        })
-    })
+const localLogin = new LocalStrategy(localOptions, async(email, password, done) => {
+    try {
+        const user = await User.findOne({ email })
+        if (!user) return done(err, false)
+        var isMatch = await user.comparePassword(password)
+        if (isMatch) return done(null, user)
+        return done(null, false)
+
+    } catch (err) {
+        console.log(err)
+    }
 })
 
 const jwtOptions = {
@@ -29,22 +31,25 @@ const jwtOptions = {
     secretOrKey: config.authSecret
 }
 
-const jwtLogin = new JwtStrategy(jwtOptions, (payload, done) => {
+const jwtLogin = new JwtStrategy(jwtOptions, async(payload, done) => {
     const token = jwt.encode(payload, authSecret)
-    User.findById(payload.sub, (err, user) => {
-        if (err) return done(err, false)
+
+    try {
+        const user = await User.findById(payload.sub)
         if (user) {
-            client.get(user.id, (err, data) => {
+            redisClient.get(user.id, (err, data) => {
                 if (err) return done(err, false)
                 if (data != null) {
                     const parsedData = JSON.parse(data)
-                    if (parsedData[user.id].includes(token)) return done("Invalid Token", false)
+                    if (parsedData[user.id].includes(token)) return done(null, false)
                 }
             })
             return done(null, user)
         }
         return done(null, false)
-    })
+    } catch (err) {
+        console.log(err)
+    }
 })
 
 passport.use(jwtLogin)
