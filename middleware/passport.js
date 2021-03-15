@@ -7,7 +7,7 @@ const User = require('../models/User')
 const config = require('../config')
 const { authSecret } = require('../config')
 
-const redisClient = require('redis').createClient()
+const redisClient = require('../redis').getClient()
 
 const localOptions = { usernameField: "email" }
 
