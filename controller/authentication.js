@@ -6,6 +6,7 @@ const config = require('../config')
 const redisClient = require('redis').createClient()
 
 const moment = require('moment')
+const { ensureIndexes } = require('../models/User')
 const EXPIRE = 3600
 
 const validateEmail = (email) => {
@@ -22,26 +23,18 @@ exports.generateToken = user => {
     )
 }
 
-exports.signup = (req, res, next) => {
-    const { email, password, displayName } = req.body
+exports.signup = async(req, res, next) => {
+    try {
+        const { email, password, displayName } = req.body
 
-    if (!email || !validateEmail(email) || !password || password.length < 6 || !displayName || displayName.length < 3)
-        return res.status(422).send({
-            error: "Provide Valid Credentials."
-        })
+        if (!email || !validateEmail(email) || !password || password.length < 6 || !displayName || displayName.length < 3)
+            return res.status(422).send("Provide Valid Credentials.")
 
-    User.findOne({ email: email }, (err, existingUser) => {
-        if (err) return next(err)
-        if (existingUser) return res.status(422).send({
-            error: "Email Already In Use."
-        })
-    })
+        var existingUser = await User.findOne({ email })
+        if (existingUser) return res.status(422).send("Email Already In Use.")
 
-    const user = new User({ email, password, displayName })
-    user.save((err, user) => {
-        if (err) return next(err)
-        const { email, displayName } = user
-
+        const user = new User({ email, password, displayName })
+        await user.save()
         res.status(201).send({
             token: exports.generateToken(user),
             user: {
@@ -49,7 +42,9 @@ exports.signup = (req, res, next) => {
                 displayName
             }
         })
-    })
+    } catch (err) {
+        console.log(err)
+    }
 }
 
 exports.login = (req, res) => {
@@ -63,22 +58,24 @@ exports.login = (req, res) => {
     })
 }
 
-exports.logout = (req, res) => {
+exports.logout = async(req, res) => {
     const token = req.headers.authorization.replace('bearer ', '')
     const user = req.user.id
 
-    redisClient.get(user, (err, data) => {
-        if (err) res.send({ err })
-        if (data !== null) {
-            const parsedData = JSON.parse(data)
-            parsedData[user].push(token)
-            redisClient.setex(user, 3600, JSON.stringify(parsedData))
-            return res.status(200).send("Logout Success")
-        }
-        const blacklistData = {
-            [user]: [token]
-        }
-        redisClient.setex(user, 3600, JSON.stringify(blacklistData))
-        return res.status(200).send("Logout Success")
-    })
+    try {
+        await redisClient.get(user, (err, data) => {
+            if (err) res.send({ err })
+            if (data !== null) {
+                const parsedData = JSON.parse(data)
+                parsedData[user].push(token)
+                redisClient.setex(user, 3600, JSON.stringify(parsedData))
+            }
+            const blacklistData = {
+                [user]: [token]
+            }
+            redisClient.setex(user, 3600, JSON.stringify(blacklistData))
+        })
+    } catch (err) {
+        console.log(err)
+    }
 }

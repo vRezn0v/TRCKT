@@ -50,6 +50,21 @@ const jwtLogin = new JwtStrategy(jwtOptions, async(payload, done) => {
     } catch (err) {
         console.log(err)
     }
+
+    /*User.findById(payload.sub, (err, user) => {
+        if (err) return done(err, false)
+        if (user) {
+            client.get(user.id, (err, data) => {
+                if (err) return done(err, false)
+                if (data != null) {
+                    const parsedData = JSON.parse(data)
+                    if (parsedData[user.id].includes(token)) return done(null, false)
+                }
+            })
+            return done(null, user)
+        }
+        return done(null, false)
+    })*/
 })
 
 passport.use(jwtLogin)
