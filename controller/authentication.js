@@ -63,18 +63,22 @@ exports.logout = async(req, res) => {
     const user = req.user.id
 
     try {
-        await redisClient.get(user, (err, data) => {
-            if (err) res.send({ err })
-            if (data !== null) {
-                const parsedData = JSON.parse(data)
-                parsedData[user].push(token)
-                redisClient.setex(user, 3600, JSON.stringify(parsedData))
-            }
-            const blacklistData = {
-                [user]: [token]
-            }
-            redisClient.setex(user, 3600, JSON.stringify(blacklistData))
+        const data = await new Promise((resolve, reject) => {
+            redisClient.get(user, (err, data) => {
+                if (err) return reject(err)
+                return resolve(data)
+            })
         })
+        if (data !== null) {
+            const parsedData = JSON.parse(data)
+            parsedData[user].push(token)
+            await redisClient.setex(user, 3600, JSON.stringify(parsedData[user]))
+        }
+        const blacklistData = {
+            [user]: [token]
+        }
+        await redisClient.setex(user, 3600, JSON.stringify(blacklistData))
+        res.send("Logged Out")
     } catch (err) {
         console.log(err)
     }

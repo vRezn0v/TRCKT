@@ -6,7 +6,6 @@ const jwt = require('jwt-simple')
 const User = require('../models/User')
 const config = require('../config')
 const { authSecret } = require('../config')
-const { replaceOne } = require('../models/User')
 
 const redisClient = require('redis').createClient()
 
@@ -37,34 +36,23 @@ const jwtLogin = new JwtStrategy(jwtOptions, async(payload, done) => {
     try {
         const user = await User.findById(payload.sub)
         if (user) {
-            redisClient.get(user.id, (err, data) => {
-                if (err) return done(err, false)
-                if (data != null) {
-                    const parsedData = JSON.parse(data)
-                    if (parsedData[user.id].includes(token)) return done(null, false)
-                }
+            const data = await new Promise((resolve, reject) => {
+                redisClient.get(user.id, (err, data) => {
+                    if (err) return reject(err)
+                    return resolve(data)
+                })
             })
+            if (data != null && data != undefined) {
+                const parsedData = JSON.parse(data)
+                if (parsedData[user.id].includes(token)) return done(null, false)
+            }
+
             return done(null, user)
         }
         return done(null, false)
     } catch (err) {
         console.log(err)
     }
-
-    /*User.findById(payload.sub, (err, user) => {
-        if (err) return done(err, false)
-        if (user) {
-            client.get(user.id, (err, data) => {
-                if (err) return done(err, false)
-                if (data != null) {
-                    const parsedData = JSON.parse(data)
-                    if (parsedData[user.id].includes(token)) return done(null, false)
-                }
-            })
-            return done(null, user)
-        }
-        return done(null, false)
-    })*/
 })
 
 passport.use(jwtLogin)
