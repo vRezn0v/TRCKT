@@ -6,7 +6,7 @@ const config = require('../config')
 const redisClient = require('redis').createClient()
 
 const moment = require('moment')
-const { ensureIndexes } = require('../models/User')
+
 const EXPIRE = 3600
 
 const validateEmail = (email) => {
