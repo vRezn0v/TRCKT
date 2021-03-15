@@ -7,9 +7,6 @@ var should = chai.should()
 
 chai.use(chaiHttp)
 
-// 1 test per thing
-// mock data .js
-
 describe('Endpoint Tests', function() {
     beforeEach(function(done) {
         chai.request(app)
