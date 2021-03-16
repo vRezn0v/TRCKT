@@ -1,29 +1,32 @@
 const router = require('express').Router()
+const status = require('http-status-codes').StatusCodes
 
 const Task = require('../models/Task')
 const TaskList = require('../models/TaskList')
 const { requireAuth } = require('../middleware/passport')
 
+const { DELETE_SUCCESS, ERR_FETCH_LIST, ERR_FETCH_TASK, ERR_UPDATE, ERR_TITLE, ERR_DELETE } = require('../constants/constants')
+
 router.get('/', requireAuth, async(req, res) => {
     try {
         const lists = await TaskList.find({ owner: req.user.id })
-        res.send(lists)
+        res.status(status.OK).send(lists)
     } catch (err) {
         console.log(err)
-        res.send("Could Not Fetch Lists")
+        res.send(ERR_FETCH_LIST)
     }
 })
 
 router.get('/:id', requireAuth, async(req, res) => {
     try {
         const list = await TaskList.findById(req.params.id)
-        if (!list.owner.equals(req.user.id)) return res.status(401).send({ error: 'Access Denied' })
+        if (!list.owner.equals(req.user.id)) return res.status(status.UNAUTHORIZED).send({ error: 'Access Denied' })
 
         const tasks = await Task.find({ listId: req.params.id })
-        res.send(tasks)
+        res.status(status.OK).send(tasks)
     } catch (err) {
         console.log(err)
-        res.send("Could Not Fetch Task List")
+        res.send(ERR_FETCH_TASK)
     }
 })
 
@@ -31,10 +34,10 @@ router.put('/:id', requireAuth, async(req, res) => {
     try {
         const { title } = req.body
         const list = await TaskList.findByIdAndUpdate(req.params.id, { $set: { title: title } })
-        res.send(list)
+        res.status(status.OK).send(list)
     } catch (err) {
         console.log(err)
-        res.send("Could Not Update")
+        res.send(ERR_UPDATE)
     }
 })
 
@@ -42,10 +45,10 @@ router.put('/:id/:tid', requireAuth, async(req, res) => {
     try {
         const { completed, title } = req.body
         const task = await Task.findByIdAndUpdate(req.params.tid, { $set: { completed, title } })
-        res.send(task)
+        res.status(status.OK).send(task)
     } catch (err) {
         console.log(err)
-        res.send("Could Not Update")
+        res.send(ERR_UPDATE)
     }
 })
 
@@ -59,10 +62,10 @@ router.post('/', requireAuth, async(req, res) => {
         })
 
         const list = await newList.save()
-        return res.send(list)
+        return res.status(status.OK).send(list)
     } catch (err) {
         console.log(err)
-        res.send("Provide Valid Title For The List")
+        res.send(ERR_TITLE)
     }
 })
 
@@ -76,10 +79,10 @@ router.post('/:id', requireAuth, async(req, res) => {
         })
 
         list = await task.save()
-        return res.send(task)
+        return res.status(status.OK).send(task)
     } catch (err) {
         console.log(err)
-        res.send("Provide A Valid Title")
+        res.send(ERR_TITLE)
     }
 })
 
@@ -87,20 +90,20 @@ router.delete('/:id', requireAuth, async(req, res) => {
     try {
         await Task.deleteMany({ listId: req.params.id })
         await TaskList.findByIdAndDelete(req.params.id)
-        return res.send("Deletion Success")
+        return res.status(status.OK).send(DELETE_SUCCESS)
     } catch (err) {
         console.log(err)
-        res.send("Could Not Delete List")
+        res.send(ERR_DELETE)
     }
 })
 
 router.delete('/:id/:tid', requireAuth, async(req, res) => {
     try {
         await Task.findByIdAndDelete(req.params.id)
-        return res.send("Deletion Success")
+        return res.status(status.OK).send(DELETE_SUCCESS)
     } catch (err) {
         console.log(err)
-        res.send("Could Not Delete Task")
+        res.send(ERR_DELETE)
     }
 })
 

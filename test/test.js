@@ -1,5 +1,7 @@
 const { assert } = require('chai')
 var chai = require('chai')
+
+const status = require('http-status-codes').StatusCodes
 var chaiHttp = require('chai-http')
 var app = require('../app')
 var should = chai.should()
@@ -16,7 +18,7 @@ describe('Endpoint Tests', function() {
                 "password": "xX_password_Xx",
             })
             .end((err, res) => {
-                res.should.have.status(200)
+                res.should.have.status(status.OK)
                 res.should.be.json
                 this.token = res.body.token
                 done()
@@ -36,7 +38,7 @@ describe('Endpoint Tests', function() {
             .get('/api/user/current')
             .set('Authorization', `bearer ${this.token}`)
             .end((err, res) => {
-                res.should.have.status(200)
+                res.should.have.status(status.OK)
                 res.body.should.have.property("user")
                 done()
             })
@@ -47,7 +49,7 @@ describe('Endpoint Tests', function() {
             chai.request(app)
                 .get('/api/tasks')
                 .end((err, res) => {
-                    res.should.have.status(401)
+                    res.should.have.status(status.UNAUTHORIZED)
                     done()
                 })
         })
@@ -58,7 +60,7 @@ describe('Endpoint Tests', function() {
                 .get('/api/tasks')
                 .set('Authorization', `bearer ${this.token}`)
                 .end((err, res) => {
-                    res.should.have.status(200)
+                    res.should.have.status(status.OK)
                     assert.equal(typeof res.body, 'object')
                     done()
                 })
