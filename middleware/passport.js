@@ -7,7 +7,7 @@ const User = require('../models/User')
 const config = require('../config')
 const { authSecret } = require('../config')
 
-const redisClient = require('../redis').getClient()
+const { redisUtils } = require('../redis')
 
 const localOptions = { usernameField: "email" }
 
@@ -36,13 +36,8 @@ const jwtLogin = new JwtStrategy(jwtOptions, async(payload, done) => {
     try {
         const user = await User.findById(payload.sub)
         if (user) {
-            const data = await new Promise((resolve, reject) => {
-                redisClient.get(user.id, (err, data) => {
-                    if (err) return reject(err)
-                    return resolve(data)
-                })
-            })
-            if (data != null && data != undefined) {
+            const data = await redisUtils.getUser(user.id)
+            if (data !== null && data !== undefined) {
                 const parsedData = JSON.parse(data)
                 if (parsedData[user.id].includes(token)) return done(null, false)
             }

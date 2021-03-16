@@ -1,17 +1,16 @@
 const jwt = require('jwt-simple')
+const status = require('http-status-codes').StatusCodes
 
 const User = require('../models/User')
 const config = require('../config')
 
-const redisClient = require('../redis').getClient()
+const { redisUtils } = require('../redis')
 
 const moment = require('moment')
-
-const EXPIRE = 3600
+const { EXPIRE, EMAIL_PATTERN, PASSWORD_LENGTH, DISPLAY_LENGTH, LOGOUT_SUCCESS, ERR_EMAIL_TAKEN, ERR_INVALID_CREDS } = require('../constants/constants')
 
 const validateEmail = (email) => {
-    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-    return re.test(String(email).toLowerCase())
+    return EMAIL_PATTERN.test(String(email).toLowerCase())
 }
 
 
@@ -27,15 +26,15 @@ exports.signup = async(req, res, next) => {
     try {
         const { email, password, displayName } = req.body
 
-        if (!email || !validateEmail(email) || !password || password.length < 6 || !displayName || displayName.length < 3)
-            return res.status(422).send("Provide Valid Credentials.")
+        if (!email || !validateEmail(email) || !password || password.length < PASSWORD_LENGTH || !displayName || displayName.length < DISPLAY_LENGTH)
+            return res.status(status.UNPROCESSABLE_ENTITY).send(ERR_INVALID_CREDS)
 
         var existingUser = await User.findOne({ email })
-        if (existingUser) return res.status(422).send("Email Already In Use.")
+        if (existingUser) return res.status(status.UNPROCESSABLE_ENTITY).send(ERR_EMAIL_TAKEN)
 
         const user = new User({ email, password, displayName })
         await user.save()
-        res.status(201).send({
+        res.status(status.CREATED).send({
             token: exports.generateToken(user),
             user: {
                 email,
@@ -49,7 +48,7 @@ exports.signup = async(req, res, next) => {
 
 exports.login = (req, res) => {
     const { email, displayName } = req.user
-    res.json({
+    res.status(status.ACCEPTED).json({
         token: exports.generateToken(req.user),
         user: {
             email,
@@ -63,22 +62,17 @@ exports.logout = async(req, res) => {
     const user = req.user.id
 
     try {
-        const data = await new Promise((resolve, reject) => {
-            redisClient.get(user, (err, data) => {
-                if (err) return reject(err)
-                return resolve(data)
-            })
-        })
+        const data = await redisUtils.getUser(user)
         if (data !== null) {
             const parsedData = JSON.parse(data)
             parsedData[user].push(token)
-            await redisClient.setex(user, 3600, JSON.stringify(parsedData[user]))
+            redisUtils.setExpire(user, JSON.stringify(parsedData[user]))
         }
         const blacklistData = {
             [user]: [token]
         }
-        await redisClient.setex(user, 3600, JSON.stringify(blacklistData))
-        res.send("Logged Out")
+        await redisUtils.setExpire(user, JSON.stringify(blacklistData))
+        res.status(status.OK).send(LOGOUT_SUCCESS)
     } catch (err) {
         console.log(err)
     }
