@@ -28,15 +28,15 @@ exports.generateToken = user => {
     )
 }
 
-exports.generateRefreshToken = async(user, ipAddress) => {
+exports.generateRefreshToken = async(user, needToken) => {
     var data = new RefreshToken({
         user: user.id,
-        createdByIp: ipAddress,
         token: randomTokenString(),
         expires: moment().utc().valueOf() + REFRESH_EXPIRE
     })
     data = await data.save()
-    return data.token
+    if (needToken) return data.token
+    return data
 }
 
 exports.signup = async(req, res, next) => {
@@ -53,7 +53,7 @@ exports.signup = async(req, res, next) => {
         await user.save()
         res.status(status.CREATED).send({
             token: await exports.generateToken(user),
-            refreshToken: await exports.generateRefreshToken(req.user, req.ipAddress),
+            refreshToken: await exports.generateRefreshToken(req.user, true),
             user: {
                 email,
                 displayName
@@ -69,7 +69,7 @@ exports.login = async(req, res) => {
     const { email, displayName } = req.user
     res.status(status.ACCEPTED).json({
         token: await exports.generateToken(req.user),
-        refreshToken: await exports.generateRefreshToken(req.user, req.ipAddress),
+        refreshToken: await exports.generateRefreshToken(req.user, true),
         user: {
             email,
             displayName
@@ -84,9 +84,15 @@ exports.refreshToken = async(req, res) => {
         const user = await User.findById(refresh.user)
         const { email, displayName } = user
         if (!refresh && !refresh.isActive) res.status(status.UNAUTHORIZED).send(ERR_INVALID_RTK)
+
+        const newToken = await exports.generateRefreshToken(user, false)
+        refresh.revoked = moment.utc().valueOf()
+        refresh.replacedByToken = newToken.token
+        await refresh.save()
+        await newToken.save()
         res.status(status.ACCEPTED).send({
             token: exports.generateToken(user),
-            refreshToken,
+            refreshToken: newToken.token,
             user: {
                 email,
                 displayName

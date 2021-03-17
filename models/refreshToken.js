@@ -6,9 +6,7 @@ const refreshTokenSchema = new mongoose.Schema({
     token: String,
     expires: Date,
     issued: { type: Date, default: moment().utc().valueOf() },
-    createdByIp: String,
     revoked: Date,
-    revokedByIp: String,
     replacedByToken: String
 })
 
