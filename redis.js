@@ -26,7 +26,6 @@ module.exports.redisUtils = {
     getUser: (user) => {
         return new Promise((resolve, reject) => {
             client.get(user, (err, data) => {
-                console.log(data)
                 if (err) return reject(err)
                 return resolve(data)
             })
@@ -34,8 +33,7 @@ module.exports.redisUtils = {
     },
     setExpire: async(user, data) => {
         try {
-            if (typeof data === Object) { data = data[user] }
-            console.log(client)
+            if (typeof data === Object && data.hasOwnProperty(user)) data = data[user]
             await client.setex(user, EXPIRE, data)
         } catch (err) {
             console.log(err)
