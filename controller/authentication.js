@@ -28,14 +28,14 @@ exports.generateToken = user => {
     )
 }
 
-exports.generateRefreshToken = async(user, needToken) => {
+exports.generateRefreshToken = async(user, returnToken) => {
     var data = new RefreshToken({
         user: user.id,
         token: randomTokenString(),
         expires: moment().utc().valueOf() + REFRESH_EXPIRE
     })
     data = await data.save()
-    if (needToken) return data.token
+    if (returnToken) return data.token
     return data
 }
 
@@ -79,6 +79,8 @@ exports.login = async(req, res) => {
 
 exports.refreshToken = async(req, res) => {
     try {
+        if (!req.body.hasOwnProperty("refreshToken")) res.status(status.UNAUTHORIZED).send(ERR_INVALID_RTK)
+
         let { refreshToken } = req.body
         const refresh = await RefreshToken.findOne({ token: refreshToken })
         const user = await User.findById(refresh.user)
