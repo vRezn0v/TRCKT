@@ -10,11 +10,9 @@ const config = require('../config')
 
 const { redisUtils } = require('../redis')
 
-const { EXPIRE, REFRESH_EXPIRE, EMAIL_PATTERN, PASSWORD_LENGTH, DISPLAY_LENGTH, LOGOUT_SUCCESS, ERR_EMAIL_TAKEN, ERR_INVALID_CREDS, ERR_INVALID_RTK, ERR_SIGNUP } = require('../constants/constants')
+const { EXPIRE, REFRESH_EXPIRE, LOGOUT_SUCCESS, ERR_EMAIL_TAKEN, ERR_INVALID_CREDS, ERR_INVALID_RTK, ERR_SIGNUP } = require('../constants/constants')
+const { validateCredentials } = require('../constants/validation')
 
-const validateEmail = (email) => {
-    return EMAIL_PATTERN.test(String(email).toLowerCase())
-}
 
 const randomTokenString = () => {
     return crypto.randomBytes(40).toString('hex')
@@ -41,9 +39,11 @@ exports.generateRefreshToken = async(user, returnToken) => {
 
 exports.signup = async(req, res, next) => {
     try {
-        const { email, password, displayName } = req.body
+        if (!req.body.hasOwnProperty("email") || !req.body.hasOwnProperty("email") || !req.body.hasOwnProperty("email")) return res.status(status.UNPROCESSABLE_ENTITY).send(ERR_INVALID_CREDS)
 
-        if (!email || !validateEmail(email) || !password || password.length < PASSWORD_LENGTH || !displayName || displayName.length < DISPLAY_LENGTH)
+        let { email, password, displayName } = req.body
+
+        if (!validateCredentials({ email, password, displayName }))
             return res.status(status.UNPROCESSABLE_ENTITY).send(ERR_INVALID_CREDS)
 
         var existingUser = await User.findOne({ email })

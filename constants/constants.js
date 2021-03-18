@@ -2,7 +2,7 @@ module.exports = {
     EXPIRE: 900000,
     REFRESH_EXPIRE: 2592000000,
     EMAIL_PATTERN: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
-    PASSWORD_LENGTH: 6,
+    PASSWORD_PATTERN: /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*])(?=.{8,})/,
     DISPLAY_LENGTH: 6,
 
     LOGOUT_SUCCESS: "Logout Success.",
