@@ -51,7 +51,7 @@ exports.signup = async(req, res, next) => {
 
         const user = new User({ email, password, displayName })
         await user.save()
-        res.status(status.CREATED).send({
+        return res.status(status.CREATED).send({
             token: await exports.generateToken(user),
             refreshToken: await exports.generateRefreshToken(req.user, true),
             user: {
@@ -61,13 +61,13 @@ exports.signup = async(req, res, next) => {
         })
     } catch (err) {
         console.log(err)
-        res.send(ERR_SIGNUP)
+        return res.send(ERR_SIGNUP)
     }
 }
 
 exports.login = async(req, res) => {
     const { email, displayName } = req.user
-    res.status(status.ACCEPTED).json({
+    return res.status(status.ACCEPTED).json({
         token: await exports.generateToken(req.user),
         refreshToken: await exports.generateRefreshToken(req.user, true),
         user: {
@@ -79,20 +79,20 @@ exports.login = async(req, res) => {
 
 exports.refreshToken = async(req, res) => {
     try {
-        if (!req.body.hasOwnProperty("refreshToken")) res.status(status.UNAUTHORIZED).send(ERR_INVALID_RTK)
+        if (!req.body.hasOwnProperty("refreshToken")) return res.status(status.UNAUTHORIZED).send(ERR_INVALID_RTK)
 
         let { refreshToken } = req.body
         const refresh = await RefreshToken.findOne({ token: refreshToken })
         const user = await User.findById(refresh.user)
         const { email, displayName } = user
-        if (!refresh && !refresh.isActive) res.status(status.UNAUTHORIZED).send(ERR_INVALID_RTK)
+        if (!refresh || !refresh.isActive) return res.status(status.UNAUTHORIZED).send(ERR_INVALID_RTK)
 
         const newToken = await exports.generateRefreshToken(user, false)
         refresh.revoked = moment.utc().valueOf()
         refresh.replacedByToken = newToken.token
         await refresh.save()
         await newToken.save()
-        res.status(status.ACCEPTED).send({
+        return res.status(status.ACCEPTED).send({
             token: exports.generateToken(user),
             refreshToken: newToken.token,
             user: {
@@ -102,7 +102,7 @@ exports.refreshToken = async(req, res) => {
         })
     } catch (err) {
         console.log(err)
-        res.send(ERR_INVALID_RTK)
+        return res.send(ERR_INVALID_RTK)
     }
 }
 
@@ -125,9 +125,9 @@ exports.logout = async(req, res) => {
             [user]: [token]
         }
         await redisUtils.setExpire(user, JSON.stringify(blacklistData))
-        res.status(status.OK).send(LOGOUT_SUCCESS)
+        return res.status(status.OK).send(LOGOUT_SUCCESS)
     } catch (err) {
         console.log(err)
-        res.send(ERR_LOGOUT)
+        return res.send(ERR_LOGOUT)
     }
 }
