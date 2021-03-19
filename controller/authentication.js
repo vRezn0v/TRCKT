@@ -53,7 +53,7 @@ exports.signup = async(req, res, next) => {
         await user.save()
         return res.status(status.CREATED).send({
             token: await exports.generateToken(user),
-            refreshToken: await exports.generateRefreshToken(req.user, true),
+            refreshToken: await exports.generateRefreshToken(user, true),
             user: {
                 email,
                 displayName

@@ -19,7 +19,6 @@ const localLogin = new LocalStrategy(localOptions, async(email, password, done) 
         var isMatch = await user.comparePassword(password)
         if (isMatch) return done(null, user)
         return done(null, false)
-
     } catch (err) {
         console.log(err)
     }
@@ -41,7 +40,6 @@ const jwtLogin = new JwtStrategy(jwtOptions, async(payload, done) => {
                 const parsedData = JSON.parse(data)
                 if (parsedData[user.id].includes(token)) return done(null, false)
             }
-
             return done(null, user)
         }
         return done(null, false)
