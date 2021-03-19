@@ -120,6 +120,7 @@ exports.logout = async(req, res) => {
             const parsedData = JSON.parse(data)
             parsedData[user].push(token)
             redisUtils.setExpire(user, JSON.stringify(parsedData[user]))
+            return res.status(status.OK).send(LOGOUT_SUCCESS)
         }
         const blacklistData = {
             [user]: [token]
