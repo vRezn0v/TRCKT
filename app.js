@@ -35,3 +35,5 @@ app.use('/api/tasks', tasksRouter)
 app.use('/api/user', userRouter)
 
 app.listen(port, () => console.log(`[+] TRCKT server running at PORT: ${port}`))
+
+module.exports = app
